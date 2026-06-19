@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Star Wars Math</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@400;600&display=swap');
+
+:root {
+  --gold: #ffe81f;
+  --gold-dim: #a89800;
+  --blue-sw: #4fc3f7;
+  --red-sw: #ef5350;
+  --green-sw: #69f0ae;
+  --dark: #070b14;
+  --panel: rgba(5,12,30,0.92);
+  --border: rgba(255,232,31,0.35);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--dark);
+  font-family: 'Exo 2', sans-serif;
+  color: #ddd;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+canvas#stars { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+
+.screen { position:relative; z-index:1; display:none; min-height:100vh; padding:16px; align-items:center; justify-content:center; flex-direction:column; }
+.screen.active { display:flex; }
+
+/* ── CRAWL INTRO ── */
+#introScreen { justify-content:flex-end; overflow:hidden; }
+.crawl-wrap { perspective: 350px; width:100%; max-width:600px; height:100vh; overflow:hidden; }
+.crawl {
+  transform-origin: 50% 100%;
+  transform: rotateX(20deg);
+  animation: crawl 18s linear forwards;
+  padding: 0 40px;
+}
+@keyframes crawl { from{margin-top:100vh} to{margin-top:-300%} }
+.crawl-logo { font-family:'Orbitron',monospace; font-size:clamp(1.4rem,5vw,2.8rem); color:var(--gold); text-align:center; letter-spacing:4px; margin-bottom:10px; text-shadow:0 0 20px var(--gold); font-weight:900; }
+.crawl-sub  { font-family:'Orbitron',monospace; font-size:clamp(0.7rem,2vw,1rem); color:var(--gold-dim); text-align:center; letter-spacing:6px; margin-bottom:40px; }
+.crawl-text { font-size:clamp(0.9rem,2.5vw,1.15rem); line-height:1.9; text-align:justify; color:#ccc; }
+.crawl-text p { margin-bottom:18px; }
+.skip-btn { position:fixed; bottom:24px; right:24px; z-index:20; background:transparent; border:1px solid var(--border); color:var(--gold); font-family:'Orbitron',monospace; font-size:0.7rem; padding:8px 16px; border-radius:6px; cursor:pointer; letter-spacing:2px; transition:all 0.2s; }
+.skip-btn:hover { background:rgba(255,232,31,0.1); }
+
+/* ── TITLE ── */
+h1.title { font-family:'Orbitron',monospace; font-size:clamp(1.6rem,5vw,3.2rem); font-weight:900; text-align:center; color:var(--gold); text-shadow:0 0 30px var(--gold), 0 0 60px rgba(255,232,31,0.3); margin-bottom:4px; letter-spacing:4px; }
+.subtitle { font-family:'Orbitron',monospace; color:#888; font-size:clamp(0.6rem,1.5vw,0.85rem); margin-bottom:22px; text-align:center; letter-spacing:4px; }
+
+/* ── PANEL ── */
+.panel { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:22px; width:100%; max-width:660px; box-shadow:0 0 40px rgba(255,232,31,0.06), inset 0 0 40px rgba(255,232,31,0.02); }
+.section-title { font-family:'Orbitron',monospace; font-size:0.65rem; color:var(--gold-dim); letter-spacing:4px; text-transform:uppercase; margin-bottom:10px; }
+
+/* ── TABLES ── */
+.tables-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(52px,1fr)); gap:8px; margin-bottom:20px; }
+.table-btn { background:rgba(255,232,31,0.04); border:1px solid rgba(255,232,31,0.2); border-radius:3px; color:#888; font-family:'Orbitron',monospace; font-size:1rem; font-weight:700; cursor:pointer; padding:12px 4px; transition:all 0.15s; text-align:center; }
+.table-btn:hover { border-color:var(--gold); color:#ccc; background:rgba(255,232,31,0.1); }
+.table-btn.selected { background:rgba(255,232,31,0.15); border-color:var(--gold); color:var(--gold); box-shadow:0 0 10px rgba(255,232,31,0.3); }
+.table-btn.locked { opacity:0.35; cursor:not-allowed; }
+
+/* ── MODES ── */
+.modes-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+.mode-btn { background:rgba(79,195,247,0.05); border:1px solid rgba(79,195,247,0.25); border-radius:3px; color:#7ab; font-family:'Exo 2',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; padding:14px 10px; transition:all 0.15s; text-align:center; }
+.mode-btn:hover { border-color:var(--blue-sw); color:#ddd; background:rgba(79,195,247,0.12); }
+.mode-btn.selected { background:rgba(79,195,247,0.18); border-color:var(--blue-sw); color:#fff; box-shadow:0 0 12px rgba(79,195,247,0.3); }
+.mode-icon { font-size:1.4rem; display:block; margin-bottom:4px; }
+.mode-hint { font-size:0.68rem; color:#678; margin-top:3px; display:block; }
+
+/* ── BUTTONS ── */
+.btn-primary { background:linear-gradient(135deg,#b8a000,#ffe81f); border:none; border-radius:3px; color:#000; font-family:'Orbitron',monospace; font-size:0.9rem; font-weight:900; cursor:pointer; padding:15px 30px; letter-spacing:3px; box-shadow:0 0 20px rgba(255,232,31,0.4); transition:all 0.2s; width:100%; }
+.btn-primary:hover { transform:scale(1.02); box-shadow:0 0 30px rgba(255,232,31,0.7); }
+.btn-primary:disabled { opacity:0.35; cursor:not-allowed; transform:none; }
+.btn-secondary { background:transparent; border:1px solid rgba(255,232,31,0.3); border-radius:3px; color:var(--gold-dim); font-family:'Orbitron',monospace; font-size:0.7rem; cursor:pointer; padding:9px 18px; letter-spacing:2px; transition:all 0.2s; }
+.btn-secondary:hover { border-color:var(--gold); color:var(--gold); background:rgba(255,232,31,0.07); }
+.btn-danger { background:transparent; border:1px solid rgba(239,83,80,0.4); border-radius:3px; color:#ef9a9a; font-family:'Orbitron',monospace; font-size:0.7rem; cursor:pointer; padding:9px 18px; letter-spacing:2px; transition:all 0.2s; }
+.btn-danger:hover { border-color:var(--red-sw); color:var(--red-sw); background:rgba(239,83,80,0.1); }
+
+/* ── NAV TABS ── */
+.nav-tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid rgba(255,232,31,0.15); padding-bottom:12px; }
+.nav-tab { background:transparent; border:1px solid rgba(255,232,31,0.18); border-radius:3px; color:#667; font-family:'Orbitron',monospace; font-size:0.65rem; cursor:pointer; padding:7px 13px; letter-spacing:2px; transition:all 0.2s; }
+.nav-tab.active, .nav-tab:hover { border-color:var(--gold); color:var(--gold); background:rgba(255,232,31,0.07); }
+
+/* ── HUD ── */
+.hud { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:660px; margin-bottom:10px; flex-wrap:wrap; gap:6px; }
+.hud-box { background:var(--panel); border:1px solid rgba(255,232,31,0.2); border-radius:3px; padding:6px 12px; font-family:'Orbitron',monospace; font-size:0.75rem; text-align:center; min-width:70px; }
+.hud-label { color:#556; font-size:0.55rem; letter-spacing:3px; margin-bottom:2px; }
+.hud-value { font-size:1rem; font-weight:700; }
+#scoreVal { color:var(--gold); text-shadow:0 0 8px rgba(255,232,31,0.5); }
+#livesVal  { color:var(--red-sw); }
+#timerVal  { color:var(--green-sw); }
+#comboVal  { color:var(--blue-sw); }
+.hud-btns  { display:flex; gap:6px; }
+
+/* ── TIMER BAR ── */
+.timer-bar-wrap { width:100%; max-width:660px; height:5px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden; margin-bottom:12px; }
+#timerBar { height:100%; width:100%; background:var(--green-sw); border-radius:2px; transition:width 0.1s linear, background 0.4s; }
+
+/* ── QUESTION PANEL ── */
+.question-panel { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:26px 22px; width:100%; max-width:660px; text-align:center; box-shadow:0 0 40px rgba(255,232,31,0.05); position:relative; }
+.table-info { font-family:'Orbitron',monospace; font-size:0.65rem; color:var(--gold-dim); letter-spacing:3px; margin-bottom:10px; min-height:14px; }
+.question-text { font-family:'Orbitron',monospace; font-size:clamp(2.2rem,8vw,4.5rem); font-weight:900; color:#fff; text-shadow:0 0 20px rgba(255,232,31,0.4); margin-bottom:22px; }
+
+/* ── SW MESSAGE ── */
+.sw-msg { font-size:0.9rem; font-style:italic; color:var(--gold-dim); margin-bottom:14px; min-height:22px; transition:all 0.3s; }
+.sw-msg.good { color:var(--green-sw); text-shadow:0 0 8px rgba(105,240,174,0.4); }
+.sw-msg.bad  { color:var(--red-sw);   text-shadow:0 0 8px rgba(239,83,80,0.4); }
+
+/* ── CHOICES ── */
+.choices-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.choice-btn { background:rgba(255,232,31,0.04); border:1px solid rgba(255,232,31,0.25); border-radius:3px; color:#ccc; font-family:'Orbitron',monospace; font-size:clamp(1.2rem,4vw,2rem); font-weight:700; cursor:pointer; padding:18px 8px; transition:all 0.15s; }
+.choice-btn:hover:not(:disabled) { border-color:var(--gold); background:rgba(255,232,31,0.12); transform:scale(1.04); }
+.choice-btn.correct { background:rgba(105,240,174,0.25); border-color:var(--green-sw); color:var(--green-sw); box-shadow:0 0 18px rgba(105,240,174,0.4); }
+.choice-btn.wrong   { background:rgba(239,83,80,0.25); border-color:var(--red-sw); color:var(--red-sw); box-shadow:0 0 18px rgba(239,83,80,0.4); }
+.choice-btn .key-hint { display:block; font-size:0.55rem; color:#556; margin-top:4px; letter-spacing:1px; }
+
+/* ── TYPE INPUT ── */
+.type-wrap { display:flex; gap:10px; align-items:center; justify-content:center; }
+#ansInput { background:rgba(0,20,50,0.8); border:1px solid rgba(255,232,31,0.4); border-radius:3px; color:var(--gold); font-family:'Orbitron',monospace; font-size:clamp(1.5rem,5vw,2.5rem); font-weight:700; width:160px; text-align:center; padding:12px; outline:none; transition:border-color 0.2s; }
+#ansInput:focus { border-color:var(--gold); box-shadow:0 0 18px rgba(255,232,31,0.25); }
+#ansInput.correct { border-color:var(--green-sw); color:var(--green-sw); box-shadow:0 0 18px rgba(105,240,174,0.4); }
+#ansInput.wrong   { border-color:var(--red-sw); color:var(--red-sw); box-shadow:0 0 18px rgba(239,83,80,0.4); }
+#okBtn { background:linear-gradient(135deg,#007a30,#69f0ae); border:none; border-radius:3px; color:#002; font-family:'Orbitron',monospace; font-size:0.85rem; font-weight:700; cursor:pointer; padding:12px 18px; transition:all 0.15s; letter-spacing:1px; }
+#okBtn:hover { transform:scale(1.05); box-shadow:0 0 16px rgba(105,240,174,0.5); }
+
+/* ── FEEDBACK ── */
+.feedback { font-family:'Orbitron',monospace; font-size:1rem; font-weight:700; min-height:26px; margin-top:12px; }
+.feedback.ok  { color:var(--green-sw); }
+.feedback.err { color:var(--red-sw); }
+
+/* ── PROGRESS ── */
+.prog-wrap { width:100%; max-width:660px; display:flex; align-items:center; gap:8px; margin-top:10px; }
+.prog-bg { flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden; }
+#progBar { height:100%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); border-radius:2px; transition:width 0.3s; }
+.prog-txt { font-family:'Orbitron',monospace; font-size:0.65rem; color:#556; white-space:nowrap; }
+
+/* ── RESULTS ── */
+.result-score { font-family:'Orbitron',monospace; font-size:clamp(3rem,10vw,6rem); font-weight:900; color:var(--gold); text-shadow:0 0 30px var(--gold); text-align:center; margin:8px 0; }
+.record-badge { font-family:'Orbitron',monospace; color:var(--green-sw); font-size:1rem; text-align:center; margin-bottom:10px; display:none; animation:pulse 0.8s infinite alternate; }
+@keyframes pulse { from{opacity:0.6} to{opacity:1;} }
+.sw-result-msg { background:rgba(255,232,31,0.05); border:1px solid rgba(255,232,31,0.2); border-radius:3px; padding:14px; font-style:italic; color:#bba; line-height:1.6; text-align:center; margin:12px 0; font-size:0.95rem; }
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
+.stat-box { background:rgba(255,232,31,0.04); border:1px solid rgba(255,232,31,0.15); border-radius:3px; padding:10px; text-align:center; }
+.stat-lbl { font-size:0.6rem; color:#556; letter-spacing:2px; margin-bottom:3px; }
+.stat-val { font-family:'Orbitron',monospace; font-size:1.1rem; font-weight:700; color:#fff; }
+.results-btns { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+
+/* ── LEADERBOARD ── */
+.lb-entry { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:3px; margin-bottom:6px; background:rgba(255,232,31,0.03); border:1px solid rgba(255,232,31,0.1); }
+.lb-rank { font-family:'Orbitron',monospace; font-size:0.9rem; font-weight:700; width:26px; text-align:center; color:var(--gold-dim); }
+.lb-rank.gold { color:var(--gold); }
+.lb-name { flex:1; font-weight:600; font-size:0.9rem; color:#ccc; }
+.lb-score { font-family:'Orbitron',monospace; color:var(--gold); font-weight:700; font-size:0.95rem; }
+.lb-meta { font-size:0.65rem; color:#556; }
+.lb-new { font-size:0.6rem; color:var(--green-sw); margin-left:4px; }
+
+/* ── HISTORY ── */
+.hist-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:3px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.06); }
+.hist-row.ok-row { background:rgba(105,240,174,0.05); }
+.hist-row.err-row { background:rgba(239,83,80,0.05); }
+
+/* ── CONFIRM MODAL ── */
+.modal-overlay { display:none; position:fixed; top:0;left:0;width:100%;height:100%; background:rgba(0,0,0,0.8); z-index:300; align-items:center; justify-content:center; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:#070f20; border:1px solid rgba(255,232,31,0.4); border-radius:4px; padding:30px 28px; max-width:380px; width:90%; text-align:center; box-shadow:0 0 40px rgba(255,232,31,0.1); }
+.modal-title { font-family:'Orbitron',monospace; font-size:1.1rem; color:var(--gold); margin-bottom:10px; letter-spacing:2px; }
+.modal-text { color:#aaa; font-size:0.9rem; margin-bottom:22px; line-height:1.5; }
+.modal-btns { display:flex; gap:10px; justify-content:center; }
+
+/* ── PAUSE ── */
+.pause-overlay { display:none; position:fixed; top:0;left:0;width:100%;height:100%; background:rgba(0,0,0,0.82); z-index:200; align-items:center; justify-content:center; flex-direction:column; gap:16px; }
+.pause-overlay.active { display:flex; }
+.pause-title { font-family:'Orbitron',monospace; font-size:2rem; color:var(--gold); text-shadow:0 0 20px var(--gold); margin-bottom:10px; }
+
+/* ── EFFECTS ── */
+.explosion { position:fixed; pointer-events:none; font-size:2rem; animation:expl 0.7s forwards; z-index:100; }
+@keyframes expl { 0%{opacity:1;transform:scale(0.4);}50%{opacity:1;transform:scale(1.6);}100%{opacity:0;transform:scale(2.2) translateY(-40px);} }
+.floatscore { position:fixed; pointer-events:none; font-family:'Orbitron',monospace; font-size:1.3rem; font-weight:900; animation:floatUp 1s forwards; z-index:100; }
+@keyframes floatUp { 0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-80px);} }
+.lightsaber { display:inline-block; width:3px; border-radius:2px; animation:saber 1.5s ease-in-out infinite alternate; }
+.lightsaber.blue { height:40px; background:linear-gradient(to top,transparent,var(--blue-sw)); box-shadow:0 0 6px var(--blue-sw); }
+.lightsaber.red  { height:40px; background:linear-gradient(to top,transparent,var(--red-sw));  box-shadow:0 0 6px var(--red-sw); }
+@keyframes saber { from{opacity:0.6;transform:scaleY(0.8)} to{opacity:1;transform:scaleY(1)} }
+
+@media(max-width:480px){
+  .modes-grid { grid-template-columns:1fr 1fr; }
+  .stats-grid  { grid-template-columns:1fr 1fr; }
+  .results-btns { flex-direction:column; }
+  .choices-grid { grid-template-columns:1fr 1fr 1fr; gap:8px; }
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<!-- ═══ INTRO CRAWL ═══ -->
+<div class="screen active" id="introScreen">
+  <div class="crawl-wrap">
+    <div class="crawl">
+      <div class="crawl-logo">STAR WARS</div>
+      <div class="crawl-sub">MATH ACADEMY</div>
+      <div class="crawl-text">
+        <p>Una galaxia muy, muy lejana está siendo amenazada por el Imperio de las Matemáticas Imposibles.</p>
+        <p>Sólo los Jedi más hábiles con los números pueden derrotar a Darth Multiplicación y restaurar la paz en la República.</p>
+        <p>Joven Padawan, el Consejo Jedi te encomienda una misión de la máxima importancia: dominar las tablas de multiplicar antes de que el lado oscuro se apodere de la galaxia.</p>
+        <p>Que la Fuerza de los números te acompañe...</p>
+      </div>
+    </div>
+  </div>
+  <button class="skip-btn" onclick="goMenu()">SALTAR INTRO ▶</button>
+</div>
+
+<!-- ═══ MENU ═══ -->
+<div class="screen" id="menuScreen">
+  <div style="text-align:center;margin-bottom:16px;">
+    <span class="lightsaber blue" style="margin-right:12px;height:50px;"></span>
+    <span style="font-size:2.8rem;">⚔️</span>
+    <span class="lightsaber red" style="margin-left:12px;height:50px;"></span>
+  </div>
+  <h1 class="title">STAR WARS</h1>
+  <div class="subtitle">✦ MATH ACADEMY ✦</div>
+
+  <div class="panel">
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tabSetup" onclick="showTab('setup')">⚙️ MISIÓN</button>
+      <button class="nav-tab" id="tabScores" onclick="showTab('scores')">🏆 HOLOCRONES</button>
+    </div>
+
+    <!-- SETUP -->
+    <div id="setupTab">
+      <div class="section-title">🎯 SELECCIONA LAS TABLAS</div>
+      <div class="tables-grid" id="tablesGrid"></div>
+
+      <div class="section-title">🕹️ MODO DE JUEGO</div>
+      <div class="modes-grid">
+        <button class="mode-btn selected" data-mode="order-type" onclick="selectMode('order-type')">
+          <span class="mode-icon">📋⌨️</span>Orden · Escribir
+          <span class="mode-hint">1 tabla · escribe el resultado</span>
+        </button>
+        <button class="mode-btn" data-mode="order-choice" onclick="selectMode('order-choice')">
+          <span class="mode-icon">📋🔢</span>Orden · Elegir
+          <span class="mode-hint">1 tabla · elige entre 3 opciones</span>
+        </button>
+        <button class="mode-btn" data-mode="random-type" onclick="selectMode('random-type')">
+          <span class="mode-icon">🎲⌨️</span>Aleatorio · Escribir
+          <span class="mode-hint">varias tablas · escribe el resultado</span>
+        </button>
+        <button class="mode-btn" data-mode="random-choice" onclick="selectMode('random-choice')">
+          <span class="mode-icon">🎲🔢</span>Aleatorio · Elegir
+          <span class="mode-hint">varias tablas · elige entre 3 opciones</span>
+        </button>
+      </div>
+
+      <div id="modeNote" style="font-size:0.75rem;color:#667;font-style:italic;margin-bottom:16px;min-height:16px;text-align:center;"></div>
+
+      <button class="btn-primary" id="startBtn" onclick="startGame()">⚡ INICIAR MISIÓN</button>
+    </div>
+
+    <!-- SCORES -->
+    <div id="scoresTab" style="display:none">
+      <div id="lbContent" style="min-height:80px;"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <button class="btn-danger" onclick="clearScores()">🗑️ BORRAR TODO</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div class="screen" id="gameScreen">
+  <div class="hud">
+    <div class="hud-box"><div class="hud-label">PUNTOS</div><div class="hud-value" id="scoreVal">0</div></div>
+    <div class="hud-box"><div class="hud-label">COMBO</div><div class="hud-value" id="comboVal">x1</div></div>
+    <div class="hud-box"><div class="hud-label">VIDAS</div><div class="hud-value" id="livesVal">❤️❤️❤️</div></div>
+    <div class="hud-box"><div class="hud-label">TIEMPO</div><div class="hud-value" id="timerVal">--</div></div>
+    <div class="hud-btns">
+      <button class="btn-secondary" onclick="togglePause()" id="pauseBtn">⏸</button>
+      <button class="btn-danger" onclick="confirmAbort()">✕ SALIR</button>
+    </div>
+  </div>
+
+  <div class="timer-bar-wrap"><div id="timerBar"></div></div>
+
+  <div class="question-panel" id="qPanel">
+    <div class="table-info" id="tableInfo"></div>
+    <div class="question-text" id="qText">?</div>
+    <div class="sw-msg" id="swMsg"></div>
+    <div id="ansArea"></div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-bg"><div id="progBar" style="width:0%"></div></div>
+    <div class="prog-txt" id="progTxt">0/0</div>
+  </div>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div class="screen" id="resultsScreen">
+  <h1 class="title" style="margin-bottom:2px;">MISIÓN</h1>
+  <div class="subtitle" id="resultSubtitle">COMPLETADA</div>
+  <div class="panel" style="max-width:580px;">
+    <div class="result-score" id="finalScore">0</div>
+    <div class="record-badge" id="recBadge">⚡ ¡NUEVO RÉCORD, JEDI MAESTRO! ⚡</div>
+    <div class="sw-result-msg" id="swResultMsg"></div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-lbl">CORRECTAS</div><div class="stat-val" style="color:var(--green-sw)" id="stOk">0</div></div>
+      <div class="stat-box"><div class="stat-lbl">ERRORES</div><div class="stat-val" style="color:var(--red-sw)" id="stErr">0</div></div>
+      <div class="stat-box"><div class="stat-lbl">RACHA MÁX</div><div class="stat-val" style="color:var(--blue-sw)" id="stStreak">0</div></div>
+    </div>
+    <div id="histArea" style="max-height:180px;overflow-y:auto;margin:10px 0;"></div>
+    <div class="results-btns">
+      <button class="btn-primary" onclick="startGame()" style="flex:2">🔄 NUEVA MISIÓN</button>
+      <button class="btn-secondary" onclick="goMenu()" style="flex:1">🏠 MENÚ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAUSE OVERLAY ═══ -->
+<div class="pause-overlay" id="pauseOverlay">
+  <div class="pause-title">⏸ PAUSA</div>
+  <div style="color:#888;font-style:italic;margin-bottom:20px;">"La paciencia es la virtud de un Jedi."</div>
+  <button class="btn-primary" onclick="togglePause()" style="max-width:280px">▶️ CONTINUAR</button>
+  <button class="btn-danger" style="margin-top:8px" onclick="confirmAbort()">✕ ABANDONAR MISIÓN</button>
+</div>
+
+<!-- ═══ CONFIRM MODAL ═══ -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ ABANDONAR MISIÓN</div>
+    <div class="modal-text">"El miedo lleva a la ira, la ira lleva al lado oscuro..."<br><br>¿Seguro que quieres abandonar la partida? Se perderá tu progreso.</div>
+    <div class="modal-btns">
+      <button class="btn-danger" onclick="abortGame()">Abandonar</button>
+      <button class="btn-secondary" onclick="closeModal()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STARS ───────────────────────────────────────────────
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function initStars(){
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  stars = Array.from({length:200},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.4+0.2,sp:Math.random()*0.3+0.05,op:Math.random()*0.8+0.2}));
+}
+function drawStars(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  stars.forEach(s=>{ s.y+=s.sp; if(s.y>canvas.height){s.y=0;s.x=Math.random()*canvas.width;} ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(255,255,220,${s.op})`; ctx.fill(); });
+  requestAnimationFrame(drawStars);
+}
+window.addEventListener('resize',initStars); initStars(); drawStars();
+
+// ─── SW MESSAGES ─────────────────────────────────────────
+const swStreak = [
+  "¡La Fuerza es muy fuerte en ti! 🌟","¡Yoda estaría orgulloso, sí! 💚",
+  "¡Imparable como el Halcón Milenario! 🚀","¡El lado luminoso te guía! ✨",
+  "¡Ni Darth Vader te puede parar! ⚡","¡Luke Skywalker te daría un pulgar arriba! 👍",
+  "¡Eres más rápido que el salto al hiperespacio! 💫","¡Obi-Wan te diría: bien hecho, Padawan! 🧙",
+  "¡R2-D2 pita de emoción! 🤖","¡Grogu te aplaudiría con sus orejitas! 🐸"
+];
+const swWrong = [
+  "¡Esto no es el camino, Mando! 😬","¡Darth Vader se ha reído... no mola! 😈",
+  "¡El lado oscuro te ha tentado! ⚫","¡Hasta C-3PO lo calculó mal alguna vez! 🤖",
+  "¡Las probabilidades no te favorecen, pero sigue! 📊","¡Un Jedi no se rinde, intenta de nuevo! 💪",
+  "¡Jar Jar Binks también falla a veces! 🙈","¡Rey también tardó en aprender la Fuerza! 🌙",
+  "¡Que no te afecte, Padawan! Respira... 🧘","¡Han Solo fallaría con los números también! 🎲"
+];
+const swResultMsgs = {
+  perfect: [
+    "\"¡Extraordinario! El Consejo Jedi te otorga el rango de Maestro Jedi. Pocos han dominado la Fuerza de los números con tal perfección. Yoda proclama: 'Orgulloso estoy, sí.'\"",
+    "\"¡Impresionante! Ni el mismísimo Darth Vader se atrevería a enfrentarse a tu dominio de las tablas. La galaxia está a salvo gracias a ti.\""
+  ],
+  great: [
+    "\"¡Bien hecho, Jedi! La Fuerza fluye a través de tus cálculos. Obi-Wan Kenobi te dice: 'Con un poco más de práctica, serás el más poderoso Jedi de la galaxia.'\"",
+    "\"¡Excelente misión, Padawan! El Halcón Milenario ya está preparado para tu próxima aventura. Han Solo está impresionado y eso no es fácil.\""
+  ],
+  good: [
+    "\"Digno de un Jedi en entrenamiento. La Fuerza te acompaña, aunque aún debes perfeccionar tu técnica. Yoda aconseja: 'Practicar más debes, pero buen camino llevas.'\"",
+    "\"No está mal para un Padawan. R2-D2 pitó de aprobación y Grogu te mira con sus enormes ojos. ¡Sigue adelante!\""
+  ],
+  poor: [
+    "\"El lado oscuro casi te vence hoy, Padawan. Darth Vader sonrió... pero no te preocupes. Hasta Luke Skywalker necesitó entrenamiento. ¡Vuelve al Templo Jedi!\"",
+    "\"Mmm. Muchos errores has cometido. Pero el fracaso es el mejor maestro, dice Yoda. Recuerda: 'No hay intento, solo hacer o no hacer.'\""
+  ]
+};
+
+function getSwStreak(streak) { return swStreak[Math.min(streak-1, swStreak.length-1)]; }
+function getSwWrong()  { return swWrong[Math.floor(Math.random()*swWrong.length)]; }
+function getSwResult(pct) {
+  let pool;
+  if(pct>=0.95) pool=swResultMsgs.perfect;
+  else if(pct>=0.75) pool=swResultMsgs.great;
+  else if(pct>=0.5)  pool=swResultMsgs.good;
+  else pool=swResultMsgs.poor;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// ─── STATE ───────────────────────────────────────────────
+let selTables = [2];
+let selMode = 'order-type';
+let questions = [], curQ = 0;
+let score = 0, lives = 3, combo = 1;
+let streak = 0, maxStreak = 0;
+let correct = 0, wrong = 0;
+let history = [];
+let gTimer = null, timeLeft = 0, maxTime = 10;
+let paused = false, answered = false;
+const TOTAL_Q = 20;
+let playerName = 'Padawan';
+
+// ─── INIT TABLE GRID ─────────────────────────────────────
+const tg = document.getElementById('tablesGrid');
+for(let i=1;i<=10;i++){
+  const b=document.createElement('button');
+  b.className='table-btn'+(i===2?' selected':'');
+  b.textContent=i; b.dataset.t=i;
+  b.onclick=()=>toggleTable(i,b);
+  tg.appendChild(b);
+}
+
+function toggleTable(n,btn){
+  const isOrder = selMode==='order-type'||selMode==='order-choice';
+  if(isOrder) {
+    // solo una tabla en modos orden
+    selTables=[n];
+    document.querySelectorAll('.table-btn').forEach(b=>b.classList.toggle('selected',+b.dataset.t===n));
+    return;
+  }
+  const idx=selTables.indexOf(n);
+  if(idx>=0){ if(selTables.length===1)return; selTables.splice(idx,1); btn.classList.remove('selected'); }
+  else { selTables.push(n); btn.classList.add('selected'); }
+}
+
+function selectMode(mode){
+  selMode=mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
+  const isOrder = mode==='order-type'||mode==='order-choice';
+  const note = document.getElementById('modeNote');
+  if(isOrder){
+    note.textContent='Modo orden: solo puedes seleccionar una tabla.';
+    // enforce single table
+    if(selTables.length>1){ selTables=[selTables[0]]; document.querySelectorAll('.table-btn').forEach(b=>b.classList.toggle('selected',+b.dataset.t===selTables[0])); }
+    document.querySelectorAll('.table-btn').forEach(b=>{ b.classList.toggle('locked',false); });
+  } else {
+    note.textContent='Modo aleatorio: puedes seleccionar varias tablas.';
+    document.querySelectorAll('.table-btn').forEach(b=>b.classList.remove('locked'));
+  }
+}
+
+// ─── TABS ────────────────────────────────────────────────
+function showTab(tab){
+  document.getElementById('setupTab').style.display=tab==='setup'?'block':'none';
+  document.getElementById('scoresTab').style.display=tab==='scores'?'block':'none';
+  document.getElementById('tabSetup').classList.toggle('active',tab==='setup');
+  document.getElementById('tabScores').classList.toggle('active',tab==='scores');
+  if(tab==='scores') renderLB();
+}
+
+// ─── QUESTION GEN ─────────────────────────────────────────
+function genQuestions(){
+  const qs=[];
+  if(selMode==='order-type'||selMode==='order-choice'){
+    const t=selTables[0];
+    for(let i=1;i<=10;i++) qs.push({a:t,b:i,ans:t*i});
+    return qs; // 10 preguntas en modo orden
+  }
+  const pool=[];
+  selTables.forEach(t=>{ for(let i=1;i<=10;i++) pool.push({a:t,b:i,ans:t*i}); });
+  shuffle(pool);
+  while(qs.length<TOTAL_Q) qs.push(...pool.slice(0,TOTAL_Q-qs.length));
+  qs.splice(TOTAL_Q); return qs;
+}
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function getChoices(ans){
+  const s=new Set([ans]);
+  const pool=[];
+  for(let t=1;t<=10;t++) for(let i=1;i<=10;i++) pool.push(t*i);
+  for(let d=-4;d<=4;d++) if(d!==0&&ans+d>0) pool.push(ans+d);
+  const sh=shuffle([...new Set(pool)].filter(x=>x!==ans));
+  while(s.size<3) s.add(sh[Math.floor(Math.random()*sh.length)]);
+  return shuffle([...s]);
+}
+
+// ─── START ───────────────────────────────────────────────
+function startGame(){
+  questions=genQuestions(); curQ=0; score=0; lives=3; combo=1;
+  streak=0; maxStreak=0; correct=0; wrong=0; history=[];
+  paused=false;
+  document.getElementById('pauseOverlay').classList.remove('active');
+  showScreen('gameScreen');
+  showQ();
+}
+
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function goMenu(){ clearTimer(); paused=false; document.getElementById('pauseOverlay').classList.remove('active'); document.getElementById('confirmModal').classList.remove('active'); showScreen('menuScreen'); }
+
+// ─── CONFIRM ABORT ───────────────────────────────────────
+function confirmAbort(){
+  if(paused){ document.getElementById('pauseOverlay').classList.remove('active'); }
+  document.getElementById('confirmModal').classList.add('active');
+}
+function closeModal(){
+  document.getElementById('confirmModal').classList.remove('active');
+  if(paused) document.getElementById('pauseOverlay').classList.add('active');
+}
+function abortGame(){ clearTimer(); paused=false; document.getElementById('confirmModal').classList.remove('active'); document.getElementById('pauseOverlay').classList.remove('active'); goMenu(); }
+
+// ─── SHOW QUESTION ────────────────────────────────────────
+function showQ(){
+  const total=questions.length;
+  if(curQ>=total){ endGame(); return; }
+  const q=questions[curQ]; answered=false;
+  document.getElementById('qText').textContent=`${q.a} × ${q.b} = ?`;
+  document.getElementById('feedback').textContent='';
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('swMsg').textContent='';
+  document.getElementById('swMsg').className='sw-msg';
+  updateProgress();
+  updateHUD();
+
+  const isOrder=selMode==='order-type'||selMode==='order-choice';
+  const isChoice=selMode==='order-choice'||selMode==='random-choice';
+  const mxT=isChoice?8:12;
+
+  if(isOrder) document.getElementById('tableInfo').textContent=`TABLA DEL ${selTables[0]} — Pregunta ${curQ+1}/${total}`;
+  else document.getElementById('tableInfo').textContent=`Pregunta ${curQ+1}/${total} · Tablas: ${selTables.sort((a,b)=>a-b).join(', ')}`;
+
+  const area=document.getElementById('ansArea'); area.innerHTML='';
+  if(isChoice){ buildChoices(area,q); startTimer(mxT,()=>{ if(!answered) timeoutWrong(q); }); }
+  else { buildType(area); startTimer(mxT,()=>{ if(!answered) timeoutWrong(q); }); setTimeout(()=>{ const inp=document.getElementById('ansInput'); if(inp) inp.focus(); },80); }
+}
+
+function buildChoices(area,q){
+  const grid=document.createElement('div'); grid.className='choices-grid';
+  const ch=getChoices(q.ans);
+  ch.forEach((c,i)=>{
+    const b=document.createElement('button'); b.className='choice-btn';
+    b.innerHTML=`${c}<span class="key-hint">Tecla ${i+1}</span>`;
+    b.dataset.val=c;
+    b.onclick=()=>{ if(!answered) checkChoice(c,q.ans); };
+    grid.appendChild(b);
+  });
+  area.appendChild(grid);
+}
+
+function buildType(area){
+  const w=document.createElement('div'); w.className='type-wrap';
+  const inp=document.createElement('input'); inp.id='ansInput'; inp.type='number'; inp.min='0'; inp.max='999'; inp.placeholder='?'; inp.autocomplete='off';
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') submitAns(); });
+  const btn=document.createElement('button'); btn.id='okBtn'; btn.textContent='✓ OK'; btn.onclick=submitAns;
+  w.appendChild(inp); w.appendChild(btn); area.appendChild(w);
+}
+
+// ─── KEYBOARD ────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(paused||!document.getElementById('gameScreen').classList.contains('active')) return;
+  const isChoice=selMode==='order-choice'||selMode==='random-choice';
+  if(isChoice&&!answered){
+    const map={'1':0,'2':1,'3':2};
+    if(map[e.key]!==undefined){ const btns=document.querySelectorAll('.choice-btn'); if(btns[map[e.key]]) btns[map[e.key]].click(); }
+  }
+  if(e.key==='Escape') confirmAbort();
+  if(e.key==='p'||e.key==='P') togglePause();
+});
+
+// ─── CHECK ANSWERS ────────────────────────────────────────
+function checkChoice(val,correct_ans){
+  answered=true; clearTimer();
+  const q=questions[curQ];
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    b.disabled=true;
+    if(+b.dataset.val===correct_ans) b.classList.add('correct');
+    else if(+b.dataset.val===val&&val!==correct_ans) b.classList.add('wrong');
+  });
+  process(val===correct_ans, val, q);
+}
+function submitAns(){
+  if(answered) return;
+  const inp=document.getElementById('ansInput'); if(!inp) return;
+  const v=parseInt(inp.value); if(isNaN(v)){ inp.focus(); return; }
+  answered=true; clearTimer();
+  inp.disabled=true; if(document.getElementById('okBtn')) document.getElementById('okBtn').disabled=true;
+  const q=questions[curQ];
+  inp.classList.add(v===q.ans?'correct':'wrong');
+  process(v===q.ans, v, q);
+}
+function timeoutWrong(q){
+  answered=true; lives--; combo=1; streak=0; wrong++;
+  sfxWrong();
+  setSwMsg(false,0);
+  document.getElementById('feedback').textContent=`⏱️ ¡Tiempo! La respuesta era ${q.ans}`;
+  document.getElementById('feedback').className='feedback err';
+  score=Math.max(0,score-15); history.push({q:`${q.a}×${q.b}`,correct:q.ans,given:'—',ok:false});
+  spawnFx(false); updateHUD();
+  if(lives<=0){ setTimeout(()=>endGame(),1200); return; }
+  setTimeout(()=>{ curQ++; showQ(); },1400);
+}
+function process(ok, given, q){
+  if(ok){
+    const pts=calcPts(); score+=pts; correct++; streak++;
+    if(streak>maxStreak) maxStreak=streak;
+    if(streak>=3) { combo=Math.min(combo+1,5); sfxCombo(); }
+    else { sfxOk(); }
+    setSwMsg(true, streak);
+    const msgs=['🎯 ¡Correcto!','⚡ ¡Exacto!','💥 ¡Perfecto!','🔥 ¡Boom!','🌟 ¡Excelente!'];
+    document.getElementById('feedback').textContent=msgs[Math.floor(Math.random()*msgs.length)]+` +${pts} pts`;
+    document.getElementById('feedback').className='feedback ok';
+    spawnFx(true, pts);
+  } else {
+    lives--; combo=1; streak=0; wrong++;
+    sfxWrong();
+    setSwMsg(false,0);
+    document.getElementById('feedback').textContent=`❌ Incorrecto — era ${q.ans}  (-15 pts)`;
+    document.getElementById('feedback').className='feedback err';
+    score=Math.max(0,score-15); spawnFx(false);
+  }
+  history.push({q:`${q.a}×${q.b}`,correct:q.ans,given,ok});
+  updateHUD();
+  if(lives<=0){ setTimeout(()=>endGame(),1200); return; }
+  setTimeout(()=>{ curQ++; showQ(); }, ok?800:1400);
+}
+
+function setSwMsg(ok, s){
+  const el=document.getElementById('swMsg');
+  if(ok&&s>=2){ el.textContent=getSwStreak(s); el.className='sw-msg good'; }
+  else if(!ok){ el.textContent=getSwWrong(); el.className='sw-msg bad'; }
+  else { el.textContent=''; el.className='sw-msg'; }
+}
+
+function calcPts(){ return (100+Math.round((timeLeft/maxTime)*60))*combo; }
+
+// ─── TIMER ───────────────────────────────────────────────
+function startTimer(secs,cb){
+  clearTimer(); maxTime=secs; timeLeft=secs; updateBar();
+  gTimer=setInterval(()=>{ if(paused)return; timeLeft-=0.1; if(timeLeft<=0){timeLeft=0;clearTimer();cb();} updateBar(); },100);
+}
+function clearTimer(){ if(gTimer){clearInterval(gTimer);gTimer=null;} }
+function updateBar(){
+  const pct=(timeLeft/maxTime)*100;
+  const bar=document.getElementById('timerBar'); bar.style.width=pct+'%';
+  document.getElementById('timerVal').textContent=Math.ceil(timeLeft);
+  if(pct>50) bar.style.background='var(--green-sw)';
+  else if(pct>25) bar.style.background='var(--gold)';
+  else bar.style.background='var(--red-sw)';
+}
+function updateHUD(){
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('livesVal').textContent='❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,3-lives));
+  document.getElementById('comboVal').textContent=`x${combo}`;
+}
+function updateProgress(){
+  const tot=questions.length, pct=(curQ/tot)*100;
+  document.getElementById('progBar').style.width=pct+'%';
+  document.getElementById('progTxt').textContent=`${curQ}/${tot}`;
+}
+
+// ─── PAUSE ───────────────────────────────────────────────
+function togglePause(){
+  paused=!paused;
+  document.getElementById('pauseOverlay').classList.toggle('active',paused);
+  document.getElementById('pauseBtn').textContent=paused?'▶':'⏸';
+}
+
+// ─── EFFECTS ─────────────────────────────────────────────
+function spawnFx(ok, pts){
+  const panel=document.getElementById('qPanel').getBoundingClientRect();
+  const cx=panel.left+panel.width/2, cy=panel.top+panel.height/2;
+  const ems=ok?['✨','⭐','💫','🌟','⚡']:['💢','😵','💀','🌀'];
+  for(let i=0;i<3;i++){
+    const el=document.createElement('div'); el.className='explosion';
+    el.textContent=ems[Math.floor(Math.random()*ems.length)];
+    el.style.left=(cx+(Math.random()-0.5)*120)+'px'; el.style.top=(cy+(Math.random()-0.5)*70)+'px';
+    document.body.appendChild(el); setTimeout(()=>el.remove(),800);
+  }
+  if(ok&&pts){
+    const el=document.createElement('div'); el.className='floatscore';
+    el.textContent=`+${pts}`; el.style.color=combo>=3?'var(--green-sw)':'var(--gold)';
+    el.style.left=cx+'px'; el.style.top=(cy-30)+'px';
+    document.body.appendChild(el); setTimeout(()=>el.remove(),1000);
+  }
+}
+
+// ─── AUDIO ───────────────────────────────────────────────
+let ac=null;
+function getAC(){ if(!ac) ac=new(window.AudioContext||window.webkitAudioContext)(); return ac; }
+function tone(f,d,t='square',v=0.12){ try{ const a=getAC(),o=a.createOscillator(),g=a.createGain(); o.connect(g);g.connect(a.destination); o.type=t;o.frequency.value=f; g.gain.setValueAtTime(v,a.currentTime); g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d); o.start();o.stop(a.currentTime+d); }catch(e){} }
+function sfxOk(){ tone(440,0.07); setTimeout(()=>tone(550,0.07),70); setTimeout(()=>tone(660,0.1),140); }
+function sfxWrong(){ tone(180,0.15,'sawtooth',0.12); setTimeout(()=>tone(140,0.2,'sawtooth',0.1),120); }
+function sfxCombo(){ [440,550,660,880].forEach((f,i)=>setTimeout(()=>tone(f,0.09),i*55)); }
+
+// ─── END GAME ────────────────────────────────────────────
+function endGame(){
+  clearTimer();
+  const tot=questions.length; const pct=correct/tot;
+  const isRec=saveScore(score,selTables,selMode);
+  document.getElementById('finalScore').textContent=score;
+  document.getElementById('stOk').textContent=correct;
+  document.getElementById('stErr').textContent=wrong;
+  document.getElementById('stStreak').textContent=maxStreak;
+  document.getElementById('swResultMsg').textContent=getSwResult(pct);
+  const sub=lives>0?'✨ COMPLETADA ✨':'💥 DESTRUIDO 💥';
+  document.getElementById('resultSubtitle').textContent=sub;
+  const rb=document.getElementById('recBadge'); rb.style.display=isRec?'block':'none';
+
+  const ha=document.getElementById('histArea'); ha.innerHTML='<div style="font-family:Orbitron,monospace;font-size:0.6rem;color:#667;margin-bottom:8px;letter-spacing:3px;">INFORME DE BATALLA</div>';
+  history.forEach(h=>{
+    const r=document.createElement('div'); r.className='hist-row '+(h.ok?'ok-row':'err-row');
+    r.innerHTML=`<span style="font-family:Orbitron,monospace;font-size:0.8rem;flex:1;color:#aaa">${h.q}</span><span style="font-family:Orbitron,monospace;font-size:0.8rem;color:${h.ok?'var(--green-sw)':'var(--red-sw)'}">${h.ok?'✓':'✗'} ${h.given}${h.ok?'':' → '+h.correct}</span>`;
+    ha.appendChild(r);
+  });
+  showScreen('resultsScreen');
+}
+
+// ─── SCORES ──────────────────────────────────────────────
+function getScores(){ try{return JSON.parse(localStorage.getItem('swMathScores')||'[]');}catch(e){return[];} }
+function saveScore(sc,tables,mode){
+  const scores=getScores();
+  const best=scores[0]?.score||0; const isRec=sc>best;
+  scores.push({score:sc,tables:tables.slice(),mode,date:new Date().toLocaleDateString('es-ES')});
+  scores.sort((a,b)=>b.score-a.score);
+  localStorage.setItem('swMathScores',JSON.stringify(scores.slice(0,20)));
+  return isRec;
+}
+function clearScores(){ if(confirm('¿Borrar todos los holocrones de puntuación?')){ localStorage.removeItem('swMathScores'); renderLB(); } }
+function renderLB(){
+  const scores=getScores(); const el=document.getElementById('lbContent');
+  if(!scores.length){ el.innerHTML='<div style="text-align:center;color:#556;padding:28px;font-family:Orbitron,monospace;font-size:0.8rem;">Sin holocrones todavía.<br>¡Sé el primer Jedi!</div>'; return; }
+  const medals=['🥇','🥈','🥉'];
+  el.innerHTML=scores.slice(0,10).map((s,i)=>`
+    <div class="lb-entry">
+      <div class="lb-rank${i===0?' gold':''}">${medals[i]||'#'+(i+1)}</div>
+      <div><div class="lb-name">${s.date} · ${s.mode}</div><div class="lb-meta">Tablas: ${Array.isArray(s.tables)?s.tables.sort((a,b)=>a-b).join(', '):s.tables}</div></div>
+      <div class="lb-score">${s.score}</div>
+    </div>`).join('');
+}
+
+// auto-skip intro after 20s
+setTimeout(goMenu, 20000);
+</script>
+</body>
+</html>
