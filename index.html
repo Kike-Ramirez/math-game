@@ -36,7 +36,7 @@ canvas#stars { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0
 .crawl {
   transform-origin: 50% 100%;
   transform: rotateX(20deg);
-  animation: crawl 18s linear forwards;
+  animation: crawl 38s linear forwards;
   padding: 0 40px;
 }
 @keyframes crawl { from{margin-top:100vh} to{margin-top:-300%} }
@@ -741,8 +741,7 @@ function renderLB(){
     </div>`).join('');
 }
 
-// auto-skip intro after 20s
-setTimeout(goMenu, 20000);
+document.querySelector('.crawl').addEventListener('animationend', goMenu);
 </script>
 </body>
 </html>
